@@ -49,6 +49,10 @@ class TaxonomyController extends Controller
     public function show($id)
     {
         //
+        $categoryData = Taxonomy::with('parent', 'term_meta')
+            ->where('taxonomy_id', $id)
+            ->get();
+        return response()->json($categoryData);
     }
 
     /**
