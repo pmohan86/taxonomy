@@ -90,37 +90,27 @@ class TaxonomyController extends Controller
     public function update(Request $request, $id)
     {
         //
-        $existsData = Taxonomy::find($id);
+        $existsData = Taxonomy::findOrFail($id);
 
-        if($existsData)
+        $checkSlugString = str_slug($request->input('name'));
+
+        $validInputData = $request->validate([
+            'name' => 'sometimes|required_with:slug|string|unique:taxonomy|max:60',
+            'slug' => 'sometimes|required_with:name|unique:taxonomy|max:100|in:'.$checkSlugString,
+            'type' => 'sometimes|required|alpha|max:50',
+            'parent' => 'sometimes|required|exists:taxonomy,taxonomy_id'
+        ]);
+
+        if($validInputData)
         {
-            $checkSlugString = str_slug($request->input('name'));
+            $existsData->update($validInputData);
 
-            $validInputData = $request->validate([
-                'name' => 'sometimes|required_with:slug|string|unique:taxonomy|max:60',
-                'slug' => 'sometimes|required_with:name|unique:taxonomy|max:100|in:'.$checkSlugString,
-                'type' => 'sometimes|required|alpha|max:50',
-                'parent' => 'sometimes|required|exists:taxonomy,taxonomy_id'
-            ]);
+            $categoryData = Taxonomy::with('parent', 'term_meta')
+                ->where('taxonomy_id', $id)
+                ->get();
 
-            if($validInputData)
-            {
-                $existsData->update($validInputData);
-
-                $categoryData = Taxonomy::with('parent', 'term_meta')
-                    ->where('taxonomy_id', $id)
-                    ->get();
-
-                return response()->json($categoryData);
-            }
+            return response()->json($categoryData);
         }
-
-        $response = [
-            "message" => "The given data was invalid.",
-            "errors" => (!$existsData) ? "Invalid Data" : "No input provided"
-        ];
-
-        return response()->json($response, 400);
     }
 
     /**
@@ -132,39 +122,28 @@ class TaxonomyController extends Controller
     public function destroy($id)
     {
         //
-        $existsData = Taxonomy::find($id);
+        $existsData = Taxonomy::findOrFail($id);
 
-        if($existsData)
-        {
-            try {
-                DB::beginTransaction();
+        try {
+            DB::beginTransaction();
 
-                TermMeta::where('taxonomy_id', $id)
-                    ->delete();
+            TermMeta::where('taxonomy_id', $id)
+                ->delete();
 
-                $existsData->delete();
+            $existsData->delete();
 
-                DB::commit();
+            DB::commit();
 
-                $response = [
-                    "message" => "Data deleted successfully"
-                ];
-                $responseCode = 200;
-            } catch (\Exception $e) {
-                DB::rollback();
-
-                $response = [
-                    "message" => "Something went wrong while deleting data.",
-                    "errors" => "Exception encountered. ".$e
-                ];
-                $responseCode = 400;
-            }
-        }
-        else
-        {
             $response = [
-                "message" => "The given data was invalid.",
-                "errors" => "Invalid Data"
+                "message" => "Data deleted successfully"
+            ];
+            $responseCode = 200;
+        } catch (\Exception $e) {
+            DB::rollback();
+
+            $response = [
+                "message" => "Something went wrong while deleting data.",
+                "errors" => "Exception encountered. ".$e
             ];
             $responseCode = 400;
         }
