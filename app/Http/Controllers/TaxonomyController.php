@@ -101,16 +101,13 @@ class TaxonomyController extends Controller
             'parent' => 'sometimes|required|exists:taxonomy,taxonomy_id'
         ]);
 
-        if($validInputData)
-        {
-            $existsData->update($validInputData);
+        $existsData->update($validInputData);
 
-            $categoryData = Taxonomy::with('parent', 'term_meta')
-                ->where('taxonomy_id', $id)
-                ->get();
+        $categoryData = Taxonomy::with('parent', 'term_meta')
+            ->where('taxonomy_id', $id)
+            ->get();
 
-            return response()->json($categoryData);
-        }
+        return response()->json($categoryData);
     }
 
     /**
