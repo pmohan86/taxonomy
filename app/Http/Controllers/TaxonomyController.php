@@ -42,8 +42,8 @@ class TaxonomyController extends Controller
 
         $validInputData = $request->validate([
             'name' => 'required|string|unique:taxonomy|max:60',
-            'slug' => 'required|unique:taxonomy|max:100|in:'.$checkSlugString,
-            'type' => 'required|alpha:max:50',
+            'slug' => 'required_with:name|unique:taxonomy|max:100|in:'.$checkSlugString,
+            'type' => 'required|alpha|max:50',
             'parent' => 'required|exists:taxonomy,taxonomy_id'
         ]);
 
@@ -88,6 +88,38 @@ class TaxonomyController extends Controller
     public function update(Request $request, $id)
     {
         //
+        $existsData = Taxonomy::find($id);
+
+        if($existsData)
+        {
+            $checkSlugString = str_slug($request->input('name'));
+
+            $validInputData = $request->validate([
+                'name' => 'sometimes|required_with:slug|string|unique:taxonomy|max:60',
+                'slug' => 'sometimes|required_with:name|unique:taxonomy|max:100|in:'.$checkSlugString,
+                'type' => 'sometimes|required|alpha|max:50',
+                'parent' => 'sometimes|required|exists:taxonomy,taxonomy_id'
+            ]);
+
+            if($validInputData)
+            {
+                Taxonomy::where('taxonomy_id', $id)
+                    ->update($validInputData);
+
+                $categoryData = Taxonomy::with('parent', 'term_meta')
+                    ->where('taxonomy_id', $id)
+                    ->get();
+
+                return response()->json($categoryData);
+            }
+        }
+
+        $response = [
+            "message" => "The given data was invalid.",
+            "errors" => (!$existsData) ? "Invalid User" : "No input provided"
+        ];
+
+        return response()->json($response, 400);
     }
 
     /**
