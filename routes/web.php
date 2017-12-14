@@ -15,4 +15,4 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::resource('categories', 'TaxonomyController', ['except' => ['create', 'edit', 'delete']]);
+Route::resource('categories', 'TaxonomyController', ['except' => ['create', 'edit']]);

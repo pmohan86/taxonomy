@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Taxonomy;
+use App\TermMeta;
+use Illuminate\Support\Facades\DB;
 
 class TaxonomyController extends Controller
 {
@@ -103,8 +105,7 @@ class TaxonomyController extends Controller
 
             if($validInputData)
             {
-                Taxonomy::where('taxonomy_id', $id)
-                    ->update($validInputData);
+                $existsData->update($validInputData);
 
                 $categoryData = Taxonomy::with('parent', 'term_meta')
                     ->where('taxonomy_id', $id)
@@ -116,7 +117,7 @@ class TaxonomyController extends Controller
 
         $response = [
             "message" => "The given data was invalid.",
-            "errors" => (!$existsData) ? "Invalid User" : "No input provided"
+            "errors" => (!$existsData) ? "Invalid Data" : "No input provided"
         ];
 
         return response()->json($response, 400);
@@ -131,5 +132,43 @@ class TaxonomyController extends Controller
     public function destroy($id)
     {
         //
+        $existsData = Taxonomy::find($id);
+
+        if($existsData)
+        {
+            try {
+                DB::beginTransaction();
+
+                TermMeta::where('taxonomy_id', $id)
+                    ->delete();
+
+                $existsData->delete();
+
+                DB::commit();
+
+                $response = [
+                    "message" => "Data deleted successfully"
+                ];
+                $responseCode = 200;
+            } catch (\Exception $e) {
+                DB::rollback();
+
+                $response = [
+                    "message" => "Something went wrong while deleting data.",
+                    "errors" => "Exception encountered. ".$e
+                ];
+                $responseCode = 400;
+            }
+        }
+        else
+        {
+            $response = [
+                "message" => "The given data was invalid.",
+                "errors" => "Invalid Data"
+            ];
+            $responseCode = 400;
+        }
+
+        return response()->json($response, $responseCode);
     }
 }
