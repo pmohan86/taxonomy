@@ -38,6 +38,18 @@ class TaxonomyController extends Controller
     public function store(Request $request)
     {
         //
+        $checkSlugString = str_slug($request->input('name'));
+
+        $validInputData = $request->validate([
+            'name' => 'required|string|unique:taxonomy|max:60',
+            'slug' => 'required|unique:taxonomy|max:100|in:'.$checkSlugString,
+            'type' => 'required|alpha:max:50',
+            'parent' => 'required|exists:taxonomy,taxonomy_id'
+        ]);
+
+        $insertedData = Taxonomy::create($validInputData);
+        
+        return response()->json($insertedData);
     }
 
     /**

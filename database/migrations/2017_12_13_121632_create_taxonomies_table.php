@@ -19,7 +19,7 @@ class CreateTaxonomiesTable extends Migration
             $table->string('slug', 100);
             $table->string('type', 50);
             $table->integer('parent')->nullable();
-            $table->integer('count');
+            $table->integer('count')->nullable();
             $table->timestamps();
         });
     }
